@@ -1,0 +1,12 @@
+build/
+.gradle/
+out/
+run/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+eclipse/
+.DS_Store
+Thumbs.db

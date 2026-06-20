@@ -1,0 +1,16 @@
+[
+{
+  "modid": "zombiesdots",
+  "name": "Zombies Dots",
+  "description": "Per-block wallshoot aim markers for Hypixel Zombies. Place precise dots on specific block faces without affecting any other block of the same type.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/boots911/zombies-dots",
+  "updateUrl": "",
+  "authorList": ["b00tz"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
