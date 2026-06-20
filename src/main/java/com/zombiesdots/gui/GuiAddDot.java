@@ -14,29 +14,34 @@ import java.io.IOException;
 public class GuiAddDot extends GuiScreen {
 
     private final MarkerData pending;
+    // null when CUSTOM is selected
     private DotColor selectedColor;
-    private int selectedSize;
+    private int sizeIndex;
 
-    private static final int PANEL_W  = 210;
-    private static final int PANEL_H  = 232;
+    private static final double[] SIZES = {0.125, 0.25, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0};
 
-    // Swatch grid: 8 colors, 18px each with 2px gap
-    private static final int SWATCH = 18;
+    private static final int PANEL_W   = 210;
+    private static final int PANEL_H   = 232;
+    private static final int SWATCH    = 18;
     private static final int SWATCH_GAP = 3;
+    // 7 standard colors + 1 custom slot = 8 swatches
+    private static final int NUM_SWATCHES = 8;
 
-    // Button IDs
     private static final int BTN_DEC    = 10;
     private static final int BTN_INC    = 11;
     private static final int BTN_SAVE   = 12;
     private static final int BTN_CANCEL = 13;
 
-    // Computed positions (set in initGui)
     private int panelX, panelY;
 
     public GuiAddDot(MarkerData pending) {
         this.pending = pending;
-        this.selectedColor = DotColor.fromName(pending.color);
-        this.selectedSize  = Math.max(1, Math.min(8, pending.size));
+        if ("CUSTOM".equalsIgnoreCase(pending.color)) {
+            this.selectedColor = null;
+        } else {
+            this.selectedColor = DotColor.fromName(pending.color);
+        }
+        this.sizeIndex = findSizeIndex(pending.size > 0 ? pending.size : 3.0);
     }
 
     @Override
@@ -45,15 +50,10 @@ public class GuiAddDot extends GuiScreen {
         panelX = width  / 2 - PANEL_W / 2;
         panelY = height / 2 - PANEL_H / 2;
 
-        // Size -/+ buttons on row y=100
-        int sizeRow = panelY + 100;
-        buttonList.add(new GuiButton(BTN_DEC, panelX + 14,            sizeRow, 22, 18, "-"));
-        buttonList.add(new GuiButton(BTN_INC, panelX + PANEL_W - 36,  sizeRow, 22, 18, "+"));
-
-        // Save / Cancel at y=200
-        int btnRow = panelY + 200;
-        buttonList.add(new GuiButton(BTN_SAVE,   panelX + 18,              btnRow, 80, 20, "Save"));
-        buttonList.add(new GuiButton(BTN_CANCEL, panelX + PANEL_W - 98,    btnRow, 80, 20, "Cancel"));
+        buttonList.add(new GuiButton(BTN_DEC,    panelX + 14,           panelY + 100, 22, 18, "-"));
+        buttonList.add(new GuiButton(BTN_INC,    panelX + PANEL_W - 36, panelY + 100, 22, 18, "+"));
+        buttonList.add(new GuiButton(BTN_SAVE,   panelX + 18,           panelY + 200, 80, 20, "Save"));
+        buttonList.add(new GuiButton(BTN_CANCEL, panelX + PANEL_W - 98, panelY + 200, 80, 20, "Cancel"));
     }
 
     @Override
@@ -65,93 +65,81 @@ public class GuiAddDot extends GuiScreen {
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
 
-        // Panel background
         drawRect(panelX - 1, panelY - 1, panelX + PANEL_W + 1, panelY + PANEL_H + 1, 0xFF555555);
         drawRect(panelX,     panelY,     panelX + PANEL_W,     panelY + PANEL_H,     0xFF2B2B2B);
 
-        int cx = panelX + PANEL_W / 2;
+        int cx   = panelX + PANEL_W / 2;
+        int infoX = panelX + 8;
 
-        // ── Title ──────────────────────────────────────────────
         drawCenteredString(fontRendererObj,
                 EnumChatFormatting.YELLOW.toString() + EnumChatFormatting.BOLD + "Add Dot Marker",
                 cx, panelY + 6, 0xFFFFFF);
 
-        // ── Block info ─────────────────────────────────────────
-        int infoX = panelX + 8;
-        drawString(fontRendererObj,
-                EnumChatFormatting.GRAY + "Pos: "     + EnumChatFormatting.WHITE + pending.positionString(),
-                infoX, panelY + 20, 0xFFFFFF);
-        drawString(fontRendererObj,
-                EnumChatFormatting.GRAY + "Face: "    + EnumChatFormatting.WHITE + pending.face,
-                infoX, panelY + 31, 0xFFFFFF);
-        drawString(fontRendererObj,
-                EnumChatFormatting.GRAY + "Block: "   + EnumChatFormatting.WHITE + shortName(pending.blockName),
-                infoX, panelY + 42, 0xFFFFFF);
-        drawString(fontRendererObj,
-                EnumChatFormatting.GRAY + "Profile: " + EnumChatFormatting.AQUA
-                        + ZombiesDotsMod.profileManager.getActiveProfile(),
-                infoX, panelY + 53, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Pos: "     + EnumChatFormatting.WHITE + pending.positionString(), infoX, panelY + 20, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Face: "    + EnumChatFormatting.WHITE + pending.face,             infoX, panelY + 31, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Block: "   + EnumChatFormatting.WHITE + shortName(pending.blockName), infoX, panelY + 42, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Profile: " + EnumChatFormatting.AQUA  + ZombiesDotsMod.profileManager.getActiveProfile(), infoX, panelY + 53, 0xFFFFFF);
 
-        // ── Color section ──────────────────────────────────────
+        // Color section
         drawRect(panelX + 6, panelY + 66, panelX + PANEL_W - 7, panelY + 67, 0xFF666666);
-        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Color",
-                infoX, panelY + 70, 0xAAAAAA);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Color  " + EnumChatFormatting.DARK_GRAY + "(custom: /dotcolor <hex>)", infoX, panelY + 70, 0xAAAAAA);
 
-        DotColor[] colors = DotColor.allColors();
-        // Center swatches: 8 × (18+3) - 3 = 165 wide
-        int totalW = colors.length * SWATCH + (colors.length - 1) * SWATCH_GAP;
+        DotColor[] colors = DotColor.allColors();  // 7 standard colors
+        int totalW     = NUM_SWATCHES * SWATCH + (NUM_SWATCHES - 1) * SWATCH_GAP;
         int swatchStartX = cx - totalW / 2;
-        int swatchY = panelY + 83;
+        int swatchY    = panelY + 83;
 
+        // Standard color swatches
         for (int i = 0; i < colors.length; i++) {
             int sx = swatchStartX + i * (SWATCH + SWATCH_GAP);
-            boolean selected = colors[i] == selectedColor;
-
-            if (selected) {
-                // White highlight border
+            boolean sel = (selectedColor != null) && (colors[i] == selectedColor);
+            if (sel) {
                 drawRect(sx - 2, swatchY - 2, sx + SWATCH + 2, swatchY + SWATCH + 2, 0xFFFFFFFF);
                 drawRect(sx - 1, swatchY - 1, sx + SWATCH + 1, swatchY + SWATCH + 1, 0xFF000000);
             }
             drawRect(sx, swatchY, sx + SWATCH, swatchY + SWATCH, colors[i].argb);
         }
 
-        // ── Size section ───────────────────────────────────────
+        // Custom swatch (slot 7)
+        int csx = swatchStartX + 7 * (SWATCH + SWATCH_GAP);
+        boolean customSel = "CUSTOM".equalsIgnoreCase(pending.color);
+        if (customSel) {
+            drawRect(csx - 2, swatchY - 2, csx + SWATCH + 2, swatchY + SWATCH + 2, 0xFFFFFFFF);
+            drawRect(csx - 1, swatchY - 1, csx + SWATCH + 1, swatchY + SWATCH + 1, 0xFF000000);
+        }
+        drawRect(csx, swatchY, csx + SWATCH, swatchY + SWATCH, ZombiesDotsMod.profileManager.getCustomARGB());
+        // "C" label so the user can tell it's the custom slot
+        drawCenteredString(fontRendererObj, "C", csx + SWATCH / 2, swatchY + SWATCH / 2 - 4, isLightColor(ZombiesDotsMod.profileManager.getCustomARGB()) ? 0xFF000000 : 0xFFFFFFFF);
+
+        // Size section
         drawRect(panelX + 6, panelY + 108, panelX + PANEL_W - 7, panelY + 109, 0xFF666666);
-        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Size",
-                infoX, panelY + 90, 0xAAAAAA);
-        // Size display centered between the two buttons
-        String sizeLabel = "" + EnumChatFormatting.WHITE + selectedSize + " px";
-        drawCenteredString(fontRendererObj, sizeLabel, cx, panelY + 105, 0xFFFFFF);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Size", infoX, panelY + 90, 0xAAAAAA);
+        drawCenteredString(fontRendererObj, "" + EnumChatFormatting.WHITE + formatSize(SIZES[sizeIndex]), cx, panelY + 105, 0xFFFFFF);
 
-        // ── Preview section ────────────────────────────────────
+        // Preview section
         drawRect(panelX + 6, panelY + 126, panelX + PANEL_W - 7, panelY + 127, 0xFF666666);
-        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Preview",
-                infoX, panelY + 130, 0xAAAAAA);
+        drawString(fontRendererObj, EnumChatFormatting.GRAY + "Preview", infoX, panelY + 130, 0xAAAAAA);
 
-        // 64×64 preview box, centered
         int previewSize = 64;
         int prevX = cx - previewSize / 2;
         int prevY = panelY + 143;
 
-        // Grey background representing the block face
         drawRect(prevX, prevY, prevX + previewSize, prevY + previewSize, 0xFF888888);
-        // Subtle 4×4 texture grid lines (representing 16x16 texture at 4px per texel)
         for (int gi = 1; gi < 4; gi++) {
             int gx = prevX + gi * previewSize / 4;
             int gy = prevY + gi * previewSize / 4;
-            drawRect(gx, prevY, gx + 1, prevY + previewSize, 0x22000000);
-            drawRect(prevX, gy, prevX + previewSize, gy + 1, 0x22000000);
+            drawRect(gx,    prevY, gx + 1,               prevY + previewSize, 0x22000000);
+            drawRect(prevX, gy,   prevX + previewSize, gy + 1,               0x22000000);
         }
 
-        // Dot position mapped to preview space
-        double fu = clamp01(pending.getFaceU());
-        double fv = clamp01(pending.getFaceV());
-        int dotCX = prevX + (int)(fu * previewSize);
-        int dotCY = prevY + (int)(fv * previewSize);
-        // Dot radius in preview: scale size by previewSize/16 / 2
-        int dotR = Math.max(1, (int)Math.round(selectedSize * previewSize / 16.0 / 2.0));
-        drawRect(dotCX - dotR, dotCY - dotR, dotCX + dotR, dotCY + dotR, selectedColor.argb);
-        // Thin black outline on preview dot
+        double fu   = clamp01(pending.getFaceU());
+        double fv   = clamp01(pending.getFaceV());
+        int dotCX   = prevX + (int)(fu * previewSize);
+        int dotCY   = prevY + (int)(fv * previewSize);
+        int dotR    = Math.max(1, (int)Math.round(SIZES[sizeIndex] * previewSize / 16.0 / 2.0));
+        int dotARGB = dotARGB();
+
+        drawRect(dotCX - dotR,     dotCY - dotR,     dotCX + dotR,     dotCY + dotR,     dotARGB);
         drawRect(dotCX - dotR - 1, dotCY - dotR - 1, dotCX + dotR + 1, dotCY - dotR,     0xFF000000);
         drawRect(dotCX - dotR - 1, dotCY + dotR,     dotCX + dotR + 1, dotCY + dotR + 1, 0xFF000000);
         drawRect(dotCX - dotR - 1, dotCY - dotR - 1, dotCX - dotR,     dotCY + dotR + 1, 0xFF000000);
@@ -164,20 +152,24 @@ public class GuiAddDot extends GuiScreen {
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         super.mouseClicked(mouseX, mouseY, mouseButton);
 
-        // Color swatch hit-test
         DotColor[] colors = DotColor.allColors();
-        int cx = panelX + PANEL_W / 2;
-        int totalW = colors.length * SWATCH + (colors.length - 1) * SWATCH_GAP;
+        int cx           = panelX + PANEL_W / 2;
+        int totalW       = NUM_SWATCHES * SWATCH + (NUM_SWATCHES - 1) * SWATCH_GAP;
         int swatchStartX = cx - totalW / 2;
-        int swatchY = panelY + 83;
+        int swatchY      = panelY + 83;
 
         for (int i = 0; i < colors.length; i++) {
             int sx = swatchStartX + i * (SWATCH + SWATCH_GAP);
-            if (mouseX >= sx && mouseX < sx + SWATCH &&
-                mouseY >= swatchY && mouseY < swatchY + SWATCH) {
+            if (mouseX >= sx && mouseX < sx + SWATCH && mouseY >= swatchY && mouseY < swatchY + SWATCH) {
                 selectedColor = colors[i];
                 pending.color = selectedColor.name();
             }
+        }
+        // Custom swatch
+        int csx = swatchStartX + 7 * (SWATCH + SWATCH_GAP);
+        if (mouseX >= csx && mouseX < csx + SWATCH && mouseY >= swatchY && mouseY < swatchY + SWATCH) {
+            selectedColor = null;
+            pending.color = "CUSTOM";
         }
     }
 
@@ -185,19 +177,20 @@ public class GuiAddDot extends GuiScreen {
     protected void actionPerformed(GuiButton button) throws IOException {
         switch (button.id) {
             case BTN_DEC:
-                if (selectedSize > 1) { selectedSize--; pending.size = selectedSize; }
+                if (sizeIndex > 0) { sizeIndex--; pending.size = SIZES[sizeIndex]; }
                 break;
             case BTN_INC:
-                if (selectedSize < 8) { selectedSize++; pending.size = selectedSize; }
+                if (sizeIndex < SIZES.length - 1) { sizeIndex++; pending.size = SIZES[sizeIndex]; }
                 break;
             case BTN_SAVE:
-                pending.color = selectedColor.name();
-                pending.size  = selectedSize;
+                pending.size = SIZES[sizeIndex];
                 ZombiesDotsMod.profileManager.addMarker(pending);
+                String colorName = "CUSTOM".equalsIgnoreCase(pending.color) ? "custom"
+                        : (selectedColor != null ? selectedColor.displayName : "unknown");
                 mc.thePlayer.addChatMessage(new ChatComponentText(
                         EnumChatFormatting.GREEN + "[ZDots] Saved at "
                         + pending.positionString() + " face=" + pending.face
-                        + " color=" + selectedColor.displayName + " size=" + selectedSize));
+                        + " color=" + colorName + " size=" + formatSize(SIZES[sizeIndex])));
                 mc.displayGuiScreen(null);
                 break;
             case BTN_CANCEL:
@@ -208,6 +201,33 @@ public class GuiAddDot extends GuiScreen {
 
     @Override
     public boolean doesGuiPauseGame() { return false; }
+
+    private int dotARGB() {
+        if ("CUSTOM".equalsIgnoreCase(pending.color)) return ZombiesDotsMod.profileManager.getCustomARGB();
+        return selectedColor != null ? selectedColor.argb : 0xFFFF0000;
+    }
+
+    private static int findSizeIndex(double size) {
+        int best = 0;
+        double bestDiff = Double.MAX_VALUE;
+        for (int i = 0; i < SIZES.length; i++) {
+            double d = Math.abs(SIZES[i] - size);
+            if (d < bestDiff) { bestDiff = d; best = i; }
+        }
+        return best;
+    }
+
+    private static String formatSize(double s) {
+        if (s >= 1.0 && s == Math.floor(s)) return (int)s + " px";
+        return s + " px";
+    }
+
+    private static boolean isLightColor(int argb) {
+        int r = (argb >> 16) & 0xFF;
+        int g = (argb >> 8)  & 0xFF;
+        int b =  argb        & 0xFF;
+        return (r * 299 + g * 587 + b * 114) > 128000;
+    }
 
     private String shortName(String name) {
         if (name == null) return "unknown";

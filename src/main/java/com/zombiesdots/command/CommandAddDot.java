@@ -66,7 +66,7 @@ public class CommandAddDot extends CommandBase {
                     bp.getX(), bp.getY(), bp.getZ(),
                     face,
                     mop.hitVec.xCoord, mop.hitVec.yCoord, mop.hitVec.zCoord,
-                    "RED", 3,
+                    "RED", 3.0,
                     blockName
             );
 

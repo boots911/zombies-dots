@@ -8,8 +8,8 @@ public class MarkerData {
     // Exact 3D hit point from raytrace (sub-block precision)
     public double hitX, hitY, hitZ;
     // Dot appearance
-    public String color;  // DotColor.name()
-    public int size;      // 1–8, pixels at 1/16-block scale
+    public String color;  // DotColor.name() or "CUSTOM"
+    public double size;   // pixel radius at 1/16-block scale; valid values: 0.125, 0.25, 0.5, 1-7
     // For display only
     public String blockName;
 
@@ -17,7 +17,7 @@ public class MarkerData {
 
     public MarkerData(int bx, int by, int bz, String face,
                       double hitX, double hitY, double hitZ,
-                      String color, int size, String blockName) {
+                      String color, double size, String blockName) {
         this.blockX = bx; this.blockY = by; this.blockZ = bz;
         this.face = face;
         this.hitX = hitX; this.hitY = hitY; this.hitZ = hitZ;

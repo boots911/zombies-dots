@@ -42,5 +42,6 @@ public class ZombiesDotsMod {
         ClientCommandHandler.instance.registerCommand(new CommandProfiles());
         ClientCommandHandler.instance.registerCommand(new CommandMarkerGUI());
         ClientCommandHandler.instance.registerCommand(new CommandDotHelp());
+        ClientCommandHandler.instance.registerCommand(new CommandDotColor());
     }
 }

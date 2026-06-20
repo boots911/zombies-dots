@@ -11,6 +11,7 @@ A Minecraft 1.8.9 Forge client mod for placing precise dot markers on block face
 | `/dotgui` | Open the profile manager |
 | `/profile <name\|off>` | Switch active profile, or use `off` to hide all dots |
 | `/profiles` | List all profiles with marker counts |
+| `/dotcolor <RRGGBB>` | Set the custom color slot (hex, e.g. `FF8800`) |
 | `/dothelp` | Show all commands in game |
 
 ## Installation

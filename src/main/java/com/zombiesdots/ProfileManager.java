@@ -11,18 +11,56 @@ import java.util.*;
 public class ProfileManager {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final String INDEX_FILE = "profiles.json";
-    private static final String OFF_PROFILE = "off";
+    private static final String INDEX_FILE    = "profiles.json";
+    private static final String SETTINGS_FILE = "settings.json";
+    private static final String OFF_PROFILE   = "off";
 
     private final File configDir;
     private String activeProfile;
     private List<String> profiles;
     private final Map<String, List<MarkerData>> markerCache = new HashMap<>();
 
+    private int customR = 255, customG = 0, customB = 255;  // default: magenta
+
     public ProfileManager(File configDir) {
         this.configDir = configDir;
         if (!configDir.exists()) configDir.mkdirs();
         loadIndex();
+        loadSettings();
+    }
+
+    public int getCustomR() { return customR; }
+    public int getCustomG() { return customG; }
+    public int getCustomB() { return customB; }
+    public int getCustomARGB() { return 0xFF000000 | (customR << 16) | (customG << 8) | customB; }
+
+    public void setCustomColor(int r, int g, int b) {
+        customR = r; customG = g; customB = b;
+        saveSettings();
+    }
+
+    private void loadSettings() {
+        File f = new File(configDir, SETTINGS_FILE);
+        if (!f.exists()) return;
+        try (Reader r = new FileReader(f)) {
+            Settings s = GSON.fromJson(r, Settings.class);
+            if (s != null && s.customColor != null && s.customColor.length() == 6) {
+                customR = Integer.parseInt(s.customColor.substring(0, 2), 16);
+                customG = Integer.parseInt(s.customColor.substring(2, 4), 16);
+                customB = Integer.parseInt(s.customColor.substring(4, 6), 16);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    private void saveSettings() {
+        File f = new File(configDir, SETTINGS_FILE);
+        try (Writer w = new FileWriter(f)) {
+            Settings s = new Settings();
+            s.customColor = String.format("%02X%02X%02X", customR, customG, customB);
+            GSON.toJson(s, w);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadIndex() {
@@ -180,5 +218,9 @@ public class ProfileManager {
     private static class ProfileIndex {
         String activeProfile;
         List<String> profiles;
+    }
+
+    private static class Settings {
+        String customColor;
     }
 }

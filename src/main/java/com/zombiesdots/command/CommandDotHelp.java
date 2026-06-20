@@ -39,6 +39,7 @@ public class CommandDotHelp extends CommandBase {
         cmd(sender, G, W, D, "/dotgui",              "Open the profile manager");
         cmd(sender, G, W, D, "/profile <name|off>",  "Switch active profile, or use 'off' to hide all dots");
         cmd(sender, G, W, D, "/profiles",            "List all profiles with marker counts");
+        cmd(sender, G, W, D, "/dotcolor <RRGGBB>",   "Set the custom color slot (hex, e.g. FF8800)");
         cmd(sender, G, W, D, "/dothelp",             "Show this help message");
     }
 

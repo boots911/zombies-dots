@@ -7,8 +7,7 @@ public enum DotColor {
     GREEN  ("Green",   0x00, 0xFF, 0x00),
     BLUE   ("Blue",    0x00, 0x00, 0xFF),
     YELLOW ("Yellow",  0xFF, 0xFF, 0x00),
-    CYAN   ("Cyan",    0x00, 0xFF, 0xFF),
-    MAGENTA("Magenta", 0xFF, 0x00, 0xFF);
+    CYAN   ("Cyan",    0x00, 0xFF, 0xFF);
 
     public final String displayName;
     public final int r, g, b;

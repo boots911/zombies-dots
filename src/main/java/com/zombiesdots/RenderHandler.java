@@ -125,9 +125,16 @@ public class RenderHandler {
 
         // half-size: size pixels at 1/16-block-per-pixel scale
         double hs = (m.size / 2.0) / 16.0;
-        if (hs < 0.5 / 16.0) hs = 0.5 / 16.0;
 
-        DotColor col = m.getDotColor();
+        final int cr, cg, cb;
+        if ("CUSTOM".equalsIgnoreCase(m.color)) {
+            cr = ZombiesDotsMod.profileManager.getCustomR();
+            cg = ZombiesDotsMod.profileManager.getCustomG();
+            cb = ZombiesDotsMod.profileManager.getCustomB();
+        } else {
+            DotColor col = m.getDotColor();
+            cr = col.r; cg = col.g; cb = col.b;
+        }
 
         // Camera-relative center
         double ox = cx - camX;
@@ -137,13 +144,13 @@ public class RenderHandler {
         wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
         // CCW from the outside of the face: TL → TR → BR → BL
         // TL = center - R*hs + U*hs
-        wr.pos(ox - rx*hs + ux*hs, oy - ry*hs + uy*hs, oz - rz*hs + uz*hs).color(col.r, col.g, col.b, 255).endVertex();
+        wr.pos(ox - rx*hs + ux*hs, oy - ry*hs + uy*hs, oz - rz*hs + uz*hs).color(cr, cg, cb, 255).endVertex();
         // TR = center + R*hs + U*hs
-        wr.pos(ox + rx*hs + ux*hs, oy + ry*hs + uy*hs, oz + rz*hs + uz*hs).color(col.r, col.g, col.b, 255).endVertex();
+        wr.pos(ox + rx*hs + ux*hs, oy + ry*hs + uy*hs, oz + rz*hs + uz*hs).color(cr, cg, cb, 255).endVertex();
         // BR = center + R*hs - U*hs
-        wr.pos(ox + rx*hs - ux*hs, oy + ry*hs - uy*hs, oz + rz*hs - uz*hs).color(col.r, col.g, col.b, 255).endVertex();
+        wr.pos(ox + rx*hs - ux*hs, oy + ry*hs - uy*hs, oz + rz*hs - uz*hs).color(cr, cg, cb, 255).endVertex();
         // BL = center - R*hs - U*hs
-        wr.pos(ox - rx*hs - ux*hs, oy - ry*hs - uy*hs, oz - rz*hs - uz*hs).color(col.r, col.g, col.b, 255).endVertex();
+        wr.pos(ox - rx*hs - ux*hs, oy - ry*hs - uy*hs, oz - rz*hs - uz*hs).color(cr, cg, cb, 255).endVertex();
         tess.draw();
     }
 }
