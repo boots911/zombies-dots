@@ -6,13 +6,13 @@ import net.minecraft.block.BlockLever;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 
 public class TargetingHelper {
 
     private static final int MAX_DISTANCE = 200;
-    // Max times to skip a transparent/non-solid block and retry
     private static final int MAX_SKIP = 16;
 
     public static MovingObjectPosition traceFromPlayer() {
@@ -39,14 +39,31 @@ public class TargetingHelper {
             Block block = player.worldObj.getBlockState(mop.getBlockPos()).getBlock();
             if (!shouldSkip(block)) return mop;
 
-            // Advance the ray start 0.05 blocks past the hit point to skip this block
-            start = new Vec3(
-                    mop.hitVec.xCoord + look.xCoord * 0.05,
-                    mop.hitVec.yCoord + look.yCoord * 0.05,
-                    mop.hitVec.zCoord + look.zCoord * 0.05
-            );
+            // Advance to just past the far face of this block so the next raytrace
+            // starts cleanly outside it. A fixed offset from the entry face would land
+            // us inside the block and cause the next raytrace to skip the immediately
+            // adjacent block behind it.
+            start = exitFace(mop.hitVec, mop.getBlockPos(), look);
         }
         return null;
+    }
+
+    // Returns a point 0.001 blocks past the face where the ray exits the given block.
+    private static Vec3 exitFace(Vec3 hitVec, BlockPos bp, Vec3 look) {
+        double tx = Double.MAX_VALUE, ty = Double.MAX_VALUE, tz = Double.MAX_VALUE;
+        if (look.xCoord > 0) tx = (bp.getX() + 1 - hitVec.xCoord) / look.xCoord;
+        else if (look.xCoord < 0) tx = (bp.getX()     - hitVec.xCoord) / look.xCoord;
+        if (look.yCoord > 0) ty = (bp.getY() + 1 - hitVec.yCoord) / look.yCoord;
+        else if (look.yCoord < 0) ty = (bp.getY()     - hitVec.yCoord) / look.yCoord;
+        if (look.zCoord > 0) tz = (bp.getZ() + 1 - hitVec.zCoord) / look.zCoord;
+        else if (look.zCoord < 0) tz = (bp.getZ()     - hitVec.zCoord) / look.zCoord;
+
+        double t = Math.min(Math.min(tx, ty), tz) + 0.001;
+        return new Vec3(
+                hitVec.xCoord + look.xCoord * t,
+                hitVec.yCoord + look.yCoord * t,
+                hitVec.zCoord + look.zCoord * t
+        );
     }
 
     private static boolean shouldSkip(Block block) {
